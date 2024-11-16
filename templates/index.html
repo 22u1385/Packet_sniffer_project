@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <title>Packet Sniffer</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Packet Sniffer</h1>
+        <div class="button-container">
+            <button id="start-btn">Start Capture</button>
+            <button id="stop-btn">Stop Capture</button>
+            <button id="clear-btn">Clear Packets</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Summary</th>
+                    <th>Source IP</th>
+                    <th>Destination IP</th>
+                    <th>Protocol</th>
+                </tr>
+            </thead>
+            <tbody id="packet-table-body">
+                {% for packet in packets %}
+                <tr>
+                    <td>{{ packet.summary }}</td>
+                    <td>{{ packet.src_ip }}</td>
+                    <td>{{ packet.dst_ip }}</td>
+                    <td>{{ packet.protocol }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <script>
+        document.getElementById("start-btn").onclick = async () => {
+            const response = await fetch("/start_capture", {
+                method: "POST"
+            });
+            const data = await response.json();
+            fetchPackets();
+        };
+
+        document.getElementById("stop-btn").onclick = async () => {
+            const response = await fetch("/stop_capture", {
+                method: "POST"
+            });
+            const data = await response.json();
+            alert(data.message);
+            clearInterval(fetchInterval);
+        };
+
+        document.getElementById("clear-btn").onclick = async () => {
+            const response = await fetch("/clear_packets", {
+                method: "POST"
+            });
+            const data = await response.json();
+            document.getElementById("packet-table-body").innerHTML = ""; // Clear the table
+        };
+
+        let fetchInterval;
+
+        async function fetchPackets() {
+            fetchInterval = setInterval(async () => {
+                const response = await fetch("/get_packets");
+                const data = await response.json();
+                const tbody = document.getElementById("packet-table-body");
+                tbody.innerHTML = ""; // Clear existing rows
+                data.packets.forEach(packet => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${packet.summary}</td>
+                        <td>${packet.src_ip}</td>
+                        <td>${packet.dst_ip}</td>
+                        <td>${packet.protocol}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }, 1000); // Fetch packets every second
+        }
+    </script>
+</body>
+</html>
